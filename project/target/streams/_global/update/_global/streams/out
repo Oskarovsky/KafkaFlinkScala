@@ -1,0 +1,3 @@
+[debug] not up to date. inChanged = true, force = false
+[debug] Updating ProjectRef(uri("file:/home/oskarro/Developer/MyProjects/scalaProjects/KafkaFlink/project/"), "kafkaflink-build")...
+[debug] Done updating ProjectRef(uri("file:/home/oskarro/Developer/MyProjects/scalaProjects/KafkaFlink/project/"), "kafkaflink-build")
