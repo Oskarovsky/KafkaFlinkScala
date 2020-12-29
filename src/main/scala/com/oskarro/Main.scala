@@ -1,31 +1,42 @@
 package com.oskarro
 
-import scopt.OptionParser
+import org.apache.flink.api.common.serialization.SimpleStringSchema
+import org.apache.flink.api.scala.createTypeInformation
+import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
+import org.apache.flink.streaming.connectors.kafka.{FlinkKafkaConsumer010, FlinkKafkaProducer010}
+
+import java.util.Properties
 
 object Main {
 
-  case class Config(topic: String = "flink_input",
-                    servers: String = "localhost:9092",
-                    group: String = "test")
-
-
   def main(args: Array[String]): Unit = {
 
-    val parser = new OptionParser[Config]("scopt") {
-      opt[String]('t', "topic").action((x, c) => c.copy(topic = x)).text("Topic to listen to")
-      opt[String]('s', "servers").action((x, c) => c.copy(servers = x)).text("Kafka bootstrap servers")
-      opt[String]('g', "group").action((x, c) => c.copy(servers = x)).text("Group id of the Kafka consumer")
-    }
+    KafkaProducer.writeToKafka("localhost:9092", "flink_input")
+    KafkaProducer.writeToKafka("localhost:9092", "flink_output")
 
-    KafkaProducer.writeToKafka("flink_input")
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.setParallelism(1)
 
-    parser.parse(args, Config()) match {
-      case Some(config) =>
-        new KafkaConsumer(config)
+    val props = new Properties()
+    props.put("bootstrap.servers","localhost:9092")
+    props.put("key.deserializer","org.apache.kafka.common.serialization.StringDeserialization")
+    props.put("value.deserializer","org.apache.kafka.common.serialization.StringDeserialization")
 
-      case None =>
-        println("Bad arguments")
-    }
+    val stream = env.addSource(
+      new FlinkKafkaConsumer010[String](
+        "flink_input",
+        new SimpleStringSchema(),
+        props
+      )
+    )
+    stream.addSink(new FlinkKafkaProducer010[String](
+      "localhost:9092",
+      "flink_input",
+      new SimpleStringSchema()
+    ))
+
+/*    stream.print()
+    env.execute()*/
   }
 }
 

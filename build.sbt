@@ -7,6 +7,7 @@ libraryDependencies += "org.apache.flink" % "flink-connector-kafka-0.11_2.11" % 
 libraryDependencies += "org.apache.flink" % "flink-streaming-scala_2.11" % "1.11.3"
 libraryDependencies += "org.apache.flink" % "flink-clients_2.11" % "1.11.3"
 
+libraryDependencies +=  "org.scalaj" %% "scalaj-http" % "2.4.2"
 
 val commonSettings = Seq(
   version := "1.0",

@@ -63,6 +63,7 @@
     <orderEntry type="library" name="sbt: org.scala-lang:scala-compiler:2.11.7:jar" level="project" />
     <orderEntry type="library" name="sbt: org.scala-lang:scala-library:2.11.7:jar" level="project" />
     <orderEntry type="library" name="sbt: org.scala-lang:scala-reflect:2.11.7:jar" level="project" />
+    <orderEntry type="library" name="sbt: org.scalaj:scalaj-http_2.11:2.4.2:jar" level="project" />
     <orderEntry type="library" name="sbt: org.slf4j:slf4j-api:1.7.25:jar" level="project" />
     <orderEntry type="library" name="sbt: org.xerial.snappy:snappy-java:1.1.4:jar" level="project" />
   </component>
