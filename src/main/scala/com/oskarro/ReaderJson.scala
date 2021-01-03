@@ -1,13 +1,10 @@
 package com.oskarro
 
-import spray.json._
-import DefaultJsonProtocol._
 import net.liftweb.json.DefaultFormats
-import spray.json._
-import play.api.libs.json.Json
 import net.liftweb.json.JsonParser._
-import net.liftweb.json.DefaultFormats
 import net.liftweb.json.Serialization.write
+import play.api.libs.json.Json
+import spray.json._
 object ReaderJson {
 
   def main(args: Array[String]): Unit ={
@@ -22,14 +19,14 @@ object ReaderJson {
 
     // This is the code that is blowing up
     case class RootCollection(items: Array[BusStream]) extends IndexedSeq[BusStream]{
-      def apply(index: Int) = items(index)
-      def length = items.length
+      def apply(index: Int): BusStream = items(index)
+      def length: Int = items.length
     }
 
     object MyJsonProtocol extends DefaultJsonProtocol {
       implicit val ElementFormat = jsonFormat6(BusStream)
       implicit object RootCollectionFormat extends RootJsonFormat[RootCollection] {
-        def read(value: JsValue) = RootCollection(value.convertTo[Array[BusStream]])
+        def read(value: JsValue): RootCollection = RootCollection(value.convertTo[Array[BusStream]])
         def write(f: RootCollection) = JsArray(f.toJson)
       }
     }
@@ -54,9 +51,9 @@ object ReaderJson {
     val jsonCollection = jsonObject2.convertTo[RootCollection]
     println(jsonCollection.apply(0))
 
-    implicit val formats = DefaultFormats
+    implicit val formats: DefaultFormats.type = DefaultFormats
     val credentials = parse(result.get.toString()).extract[List[BusStream]]
-    credentials foreach { cred => println(cred.Lines + " " + cred.VehicleNumber) }
-    credentials foreach { cred => println(write(cred)) }
+    credentials foreach {cred => KafkaProducer.writeToKafka("temat_oskar01", Main.props, write(cred))}
+
   }
 }

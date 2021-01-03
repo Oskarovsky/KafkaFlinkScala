@@ -6,19 +6,19 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011
 
 import java.util.Properties
 
-class KafkaConsumer(servers: String, topic: String) {
+object KafkaConsumer {
 
-  val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
-  val properties = new Properties()
-  properties.setProperty("bootstrap.servers", servers)
+  def readKafkaMessage(topic: String, properties: Properties): Unit = {
 
-  val stream: DataStream[String] = env
-    .addSource(new FlinkKafkaConsumer011[String](topic, new SimpleStringSchema(), properties))
+    // Fetching data from kafka
+    val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
+    val consumer = new FlinkKafkaConsumer011[String](topic, new SimpleStringSchema(), properties)
+    consumer.setStartFromLatest()
+    val stream: DataStream[String] = env
+      .addSource(consumer)
 
-  stream
-    .map((s: String) => s"This is a string: $s")
-    .print
+    stream.print
+    env.execute("Flink Kafka Example")
 
-  env.execute("Flink Kafka Example")
-
+  }
 }
