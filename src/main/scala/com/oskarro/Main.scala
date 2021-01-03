@@ -11,29 +11,31 @@ object Main {
 
   def main(args: Array[String]): Unit = {
 
-    KafkaProducer.writeToKafka("localhost:9092", "flink_input")
-    KafkaProducer.writeToKafka("localhost:9092", "flink_output")
-
-    val env = StreamExecutionEnvironment.getExecutionEnvironment
-    env.setParallelism(1)
-
     val props = new Properties()
     props.put("bootstrap.servers","localhost:9092")
     props.put("key.deserializer","org.apache.kafka.common.serialization.StringDeserialization")
     props.put("value.deserializer","org.apache.kafka.common.serialization.StringDeserialization")
+    props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
+    props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
 
-    val stream = env.addSource(
+    KafkaProducer.writeToKafka("temat_oskar01", props)
+//    KafkaProducer.writeToKafka("temat_oskar02", props)
+
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.setParallelism(1)
+
+/*    val stream = env.addSource(
       new FlinkKafkaConsumer010[String](
-        "flink_input",
+        "oskar_temat02",
         new SimpleStringSchema(),
         props
       )
     )
     stream.addSink(new FlinkKafkaProducer010[String](
       "localhost:9092",
-      "flink_input",
+      "oskar_temat02",
       new SimpleStringSchema()
-    ))
+    ))*/
 
 /*    stream.print()
     env.execute()*/
