@@ -53,7 +53,7 @@ object ReaderJson {
 
     implicit val formats: DefaultFormats.type = DefaultFormats
     val credentials = parse(result.get.toString()).extract[List[BusStream]]
-    credentials foreach {cred => KafkaProducer.writeToKafka("temat_oskar01", Main.props, write(cred))}
+    credentials foreach {cred => KafkaProducer.writeToKafka("READER", "temat_oskar01", Main.props, write(cred))}
 
   }
 }

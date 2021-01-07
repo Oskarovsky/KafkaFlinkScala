@@ -15,6 +15,8 @@ libraryDependencies += "net.liftweb" %% "lift-json" % "2.6-M4"
 
 libraryDependencies +=  "org.scalaj" %% "scalaj-http" % "2.4.2"
 
+libraryDependencies += "com.typesafe.akka" % "akka-actor_2.11" % "2.5.32"
+
 val commonSettings = Seq(
   version := "1.0",
   scalaVersion := "2.11.7"
