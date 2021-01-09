@@ -17,8 +17,10 @@ object KafkaConsumer {
     val stream: DataStream[String] = env
       .addSource(consumer)
 
-    stream.print
-    env.execute("Flink Kafka Example")
 
+
+    stream.print
+
+    env.execute("Flink Kafka Example")
   }
 }

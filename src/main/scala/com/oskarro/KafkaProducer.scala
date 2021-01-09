@@ -13,7 +13,7 @@ object KafkaProducer {
 
     // Send data on Kafka topic
     val producer = new KafkaProducer[String,String](props)
-    val record = new ProducerRecord[String,String](topic, info + " --> " + content)
+    val record = new ProducerRecord[String,String](topic, content)
     producer.send(record)
     producer.close()
   }

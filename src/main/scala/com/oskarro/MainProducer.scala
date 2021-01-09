@@ -25,10 +25,10 @@ object MainProducer {
   def main(args: Array[String]): Unit = {
     val system = akka.actor.ActorSystem("system")
     import system.dispatcher
-    system.scheduler.schedule(2 seconds, 10 seconds) {
+/*    system.scheduler.schedule(2 seconds, 10 seconds) {
       produceCurrentLocationOfVehicles("bus")
-    }
-    system.scheduler.schedule(6 seconds, 15 seconds) {
+    }*/
+    system.scheduler.schedule(2 seconds, 6 seconds) {
       produceCurrentLocationOfVehicles("tram")
     }
   }
@@ -59,7 +59,11 @@ object MainProducer {
 
     implicit val formats: DefaultFormats.type = DefaultFormats
     val vehicleList = parse(response.get.toString()).extract[List[BusStream]]
-    vehicleList foreach {veh => KafkaProducer.writeToKafka(s"[PROCESS: $vehicleType localization]","temat_oskar01", Main.props, write(veh))}
+    val infoAboutProcess: String = s"[PROCESS: $vehicleType localization]"
+    vehicleList foreach {
+      veh => KafkaProducer
+        .writeToKafka(infoAboutProcess,"temat_oskar01", Main.props, write(veh))
+    }
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     env.setParallelism(1)
