@@ -1,5 +1,6 @@
 package com.oskarro
 
+import com.oskarro.flink.KafkaProducer
 import net.liftweb.json.DefaultFormats
 import net.liftweb.json.JsonParser._
 import net.liftweb.json.Serialization.write

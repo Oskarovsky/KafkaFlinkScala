@@ -1,4 +1,4 @@
-package com.oskarro
+package com.oskarro.flink
 
 import net.liftweb.json.DefaultFormats
 import net.liftweb.json.JsonParser.parse
@@ -37,12 +37,11 @@ object MainConsumer {
       .addSource(consumer)
 
     stream.map(x => {
-        val str = Json.parse(x)
-//        println(str)
+      val str = Json.parse(x)
+      //        println(str)
       implicit val formats: DefaultFormats.type = DefaultFormats
       val vehicleObject = parse(str.toString()).extract[BusStream]
     })
-
     env.execute("Flink Kafka Example")
   }
 

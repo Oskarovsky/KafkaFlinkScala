@@ -1,7 +1,8 @@
-package com.oskarro
+package com.oskarro.flink
 
 import org.apache.flink.api.common.serialization.SimpleStringSchema
-import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment, createTypeInformation}
+import org.apache.flink.api.scala.createTypeInformation
+import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011
 
 import java.util.Properties
@@ -16,8 +17,6 @@ object KafkaConsumer {
     consumer.setStartFromLatest()
     val stream: DataStream[String] = env
       .addSource(consumer)
-
-
 
     stream.print
 

@@ -1,5 +1,6 @@
-package com.oskarro
+package com.oskarro.flink
 
+import com.oskarro.Main
 import net.liftweb.json.DefaultFormats
 import net.liftweb.json.JsonParser.parse
 import net.liftweb.json.Serialization.write
@@ -8,7 +9,7 @@ import play.api.libs.json.Json
 
 import java.text.SimpleDateFormat
 import java.util.{Calendar, Properties}
-import scala.concurrent.duration._
+import scala.concurrent.duration.DurationInt
 
 object MainProducer {
 
@@ -25,7 +26,7 @@ object MainProducer {
   def main(args: Array[String]): Unit = {
     val system = akka.actor.ActorSystem("system")
     import system.dispatcher
-/*    system.scheduler.schedule(2 seconds, 10 seconds) {
+    /*    system.scheduler.schedule(2 seconds, 10 seconds) {
       produceCurrentLocationOfVehicles("bus")
     }*/
     system.scheduler.schedule(2 seconds, 6 seconds) {
@@ -61,8 +62,9 @@ object MainProducer {
     val vehicleList = parse(response.get.toString()).extract[List[BusStream]]
     val infoAboutProcess: String = s"[PROCESS: $vehicleType localization]"
     vehicleList foreach {
-      veh => KafkaProducer
-        .writeToKafka(infoAboutProcess,"temat_oskar01", Main.props, write(veh))
+      veh =>
+        KafkaProducer
+          .writeToKafka(infoAboutProcess, "temat_oskar01", Main.props, write(veh))
     }
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
