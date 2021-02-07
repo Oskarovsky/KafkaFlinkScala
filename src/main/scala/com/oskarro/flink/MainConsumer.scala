@@ -5,8 +5,10 @@ import net.liftweb.json.JsonParser.parse
 import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.api.scala.createTypeInformation
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
+import org.apache.flink.streaming.connectors.cassandra.CassandraSink
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011
-import play.api.libs.json.Json
+import org.json4s.native.JsonMethods
+import play.api.libs.json.{JsSuccess, Json, Reads}
 
 import java.util.Properties
 
@@ -24,6 +26,9 @@ object MainConsumer {
 
   case class BusStream(Lines: String, Lon: Double, VehicleNumber: String, Time: String, Lat: Double, Brigade: String)
 
+  implicit val jsonMessageReads: Reads[BusStream] = Json.reads[BusStream]
+  implicit lazy val formats = org.json4s.DefaultFormats
+
   def main(args: Array[String]): Unit = {
     readCurrentLocationOfVehicles("temat_oskar01", props)
   }
@@ -33,15 +38,23 @@ object MainConsumer {
     env.enableCheckpointing(5000)
     val consumer = new FlinkKafkaConsumer011[String](topic, new SimpleStringSchema(), properties)
     consumer.setStartFromLatest()
-    val stream: DataStream[String] = env
+    val kafkaStream = env
       .addSource(consumer)
 
-    stream.map(x => {
+/*
+    CassandraSink.addSink(sinkDataStream)
+      .setHost("127.0.0.1")
+      .setQuery("INSERT INTO metrics.test_stream(Testowy, Liczba) values (?, ?);")
+      .build()
+*/
+
+    kafkaStream.map(x => {
       val str = Json.parse(x)
-      //        println(str)
+      println(str)
       implicit val formats: DefaultFormats.type = DefaultFormats
-      val vehicleObject = parse(str.toString()).extract[BusStream]
     })
+
+
     env.execute("Flink Kafka Example")
   }
 
