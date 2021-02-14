@@ -14,16 +14,6 @@ import scala.concurrent.duration.DurationInt
 
 object MainProducer {
 
-  val props = new Properties()
-  props.put("bootstrap.servers", "localhost:9092")
-  props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserialization")
-  props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserialization")
-  props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-  props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-
-  val apiKey: String = "3b168711-aefd-4825-973a-4e1526c6ce93"
-  val resourceID: String = "2e5503e-927d-4ad3-9500-4ab9e55deb59"
-
   def main(args: Array[String]): Unit = {
     val system = akka.actor.ActorSystem("system")
     import system.dispatcher
@@ -52,8 +42,8 @@ object MainProducer {
     println(s"[Timestamp - ${dataFormat.format(now)}] JSON Data for $vehicleType parsing started.")
     val req = requests.get("https://api.um.warszawa.pl/api/action/busestrams_get/",
       params = Map(
-        "resource_id" -> resourceID,
-        "apikey" -> apiKey,
+        "resource_id" -> KafkaProperties.resourceID,
+        "apikey" -> KafkaProperties.apiKey,
         "type" -> vehicleTypeNumber))
 
     val jsonObjectFromString = Json.parse(req.text)
@@ -61,11 +51,11 @@ object MainProducer {
 
     implicit val formats: DefaultFormats.type = DefaultFormats
     val vehicleList = parse(response.get.toString()).extract[List[BusStream]]
-    val infoAboutProcess: String = s"[PROCESS: $vehicleType localization]"
+    val kafkaService = new KafkaService()
     vehicleList foreach {
       veh =>
-        KafkaService
-          .writeToKafka(infoAboutProcess, "temat_oskar01", KafkaProperties.props, write(veh))
+        kafkaService
+          .writeToKafka("temat_oskar01", KafkaProperties.props, write(veh))
     }
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment

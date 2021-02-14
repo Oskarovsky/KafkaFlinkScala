@@ -1,5 +1,6 @@
 package com.oskarro.flink
 
+import com.oskarro.configuration.KafkaProperties
 import net.liftweb.json.DefaultFormats
 import net.liftweb.json.JsonParser.parse
 import org.apache.flink.api.common.serialization.SimpleStringSchema
@@ -14,23 +15,13 @@ import java.util.Properties
 
 object MainConsumer {
 
-  val props = new Properties()
-  props.put("bootstrap.servers", "localhost:9092")
-  props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserialization")
-  props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserialization")
-  props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-  props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer")
-
-  val apiKey: String = "3b168711-aefd-4825-973a-4e1526c6ce93"
-  val resourceID: String = "2e5503e-927d-4ad3-9500-4ab9e55deb59"
-
   case class BusStream(Lines: String, Lon: Double, VehicleNumber: String, Time: String, Lat: Double, Brigade: String)
 
   implicit val jsonMessageReads: Reads[BusStream] = Json.reads[BusStream]
   implicit lazy val formats = org.json4s.DefaultFormats
 
   def main(args: Array[String]): Unit = {
-    readCurrentLocationOfVehicles("temat_oskar01", props)
+    readCurrentLocationOfVehicles("temat_oskar01", KafkaProperties.props)
   }
 
   def readCurrentLocationOfVehicles(topic: String, properties: Properties): Unit = {
