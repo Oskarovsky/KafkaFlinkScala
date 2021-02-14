@@ -1,6 +1,7 @@
 package com.oskarro.flink
 
 import com.oskarro.configuration.KafkaProperties
+import com.oskarro.model.Bus
 import net.liftweb.json.DefaultFormats
 import net.liftweb.json.JsonParser.parse
 import org.apache.flink.api.common.serialization.SimpleStringSchema
@@ -15,13 +16,11 @@ import java.util.Properties
 
 object MainConsumer {
 
-  case class BusStream(Lines: String, Lon: Double, VehicleNumber: String, Time: String, Lat: Double, Brigade: String)
-
-  implicit val jsonMessageReads: Reads[BusStream] = Json.reads[BusStream]
+  implicit val jsonMessageReads: Reads[Bus] = Json.reads[Bus]
   implicit lazy val formats = org.json4s.DefaultFormats
 
   def main(args: Array[String]): Unit = {
-    readCurrentLocationOfVehicles("temat_oskar01", KafkaProperties.props)
+    readCurrentLocationOfVehicles(KafkaProperties.topicFirst, KafkaProperties.props)
   }
 
   def readCurrentLocationOfVehicles(topic: String, properties: Properties): Unit = {
@@ -32,7 +31,7 @@ object MainConsumer {
 
     val busDataStream = env.addSource(kafkaConsumer)
       .flatMap(raw => JsonMethods.parse(raw).toOption)
-      .map(_.extract[BusStream])
+      .map(_.extract[Bus])
 
     createTypeInformation[(String, Long, String, Long, String, Long, String)]
 

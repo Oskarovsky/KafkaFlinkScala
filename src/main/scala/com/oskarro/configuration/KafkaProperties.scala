@@ -1,8 +1,10 @@
 package com.oskarro.configuration
 
+import com.oskarro.configuration
+
 import java.util.Properties
 
-object KafkaProperties {
+object KafkaProperties extends Enumeration {
 
   val props = new Properties()
   props.put("bootstrap.servers", "localhost:9092")
@@ -13,5 +15,11 @@ object KafkaProperties {
 
   val apiKey: String = "3b168711-aefd-4825-973a-4e1526c6ce93"
   val resourceID: String = "2e5503e-927d-4ad3-9500-4ab9e55deb59"
+
+//  type KafkaProperties = Value
+
+  val topicFirst: String = "temat_oskar01"
+  val topicSecond: String = "temat_oskar02"
+
 
 }
