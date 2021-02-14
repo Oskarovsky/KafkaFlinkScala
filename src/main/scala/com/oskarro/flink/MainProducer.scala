@@ -1,6 +1,7 @@
 package com.oskarro.flink
 
-import com.oskarro.Main
+import com.oskarro.configuration.KafkaProperties
+import com.oskarro.services.KafkaService
 import net.liftweb.json.DefaultFormats
 import net.liftweb.json.JsonParser.parse
 import net.liftweb.json.Serialization.write
@@ -63,8 +64,8 @@ object MainProducer {
     val infoAboutProcess: String = s"[PROCESS: $vehicleType localization]"
     vehicleList foreach {
       veh =>
-        KafkaProducer
-          .writeToKafka(infoAboutProcess, "temat_oskar01", Main.props, write(veh))
+        KafkaService
+          .writeToKafka(infoAboutProcess, "temat_oskar01", KafkaProperties.props, write(veh))
     }
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment

@@ -36,27 +36,38 @@ object MainConsumer {
   def readCurrentLocationOfVehicles(topic: String, properties: Properties): Unit = {
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
     env.enableCheckpointing(5000)
-    val consumer = new FlinkKafkaConsumer011[String](topic, new SimpleStringSchema(), properties)
-    consumer.setStartFromLatest()
-    val kafkaStream = env
-      .addSource(consumer)
+    val kafkaConsumer = new FlinkKafkaConsumer011[String](topic, new SimpleStringSchema(), properties)
+    kafkaConsumer.setStartFromLatest()
 
-/*
-    CassandraSink.addSink(sinkDataStream)
+    val busDataStream = env.addSource(kafkaConsumer)
+      .flatMap(raw => JsonMethods.parse(raw).toOption)
+      .map(_.extract[BusStream])
+
+    createTypeInformation[(String, Long, String, Long, String, Long, String)]
+
+    // Creating bus data to sink into cassandraDB.
+    val sinkBusDataStream = busDataStream
+      .map(bus => (bus.Lines, bus.Lon, bus.VehicleNumber, bus.Time, bus.Lat, bus.Brigade))
+
+    CassandraSink.addSink(sinkBusDataStream)
       .setHost("127.0.0.1")
-      .setQuery("INSERT INTO metrics.test_stream(Testowy, Liczba) values (?, ?);")
+      .setQuery("INSERT INTO metrics.buses_full(" +
+        "\"Lines\", " +
+        "\"Lon\", " +
+        "\"VehicleNumber\", " +
+        "\"Time\", " +
+        "\"Lat\", " +
+        "\"Brigade\")" +
+        " values (?, ?, ?, ?, ?, ?);")
       .build()
-*/
 
-    kafkaStream.map(x => {
-      val str = Json.parse(x)
-      println(str)
-      implicit val formats: DefaultFormats.type = DefaultFormats
-    })
+//    busDataStream.map(x => {
+//      val str = Json.parse(x)
+//      println(str)
+//      implicit val formats: DefaultFormats.type = DefaultFormats
+//    })
 
 
     env.execute("Flink Kafka Example")
   }
-
-
 }
