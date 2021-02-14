@@ -60,7 +60,5 @@ object MainProducer {
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     env.setParallelism(1)
-    //    env.execute()
-
   }
 }

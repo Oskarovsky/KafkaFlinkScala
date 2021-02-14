@@ -31,9 +31,6 @@ class KafkaService {
     consumer.setStartFromLatest()
     val stream: DataStream[String] = env
       .addSource(consumer)
-
-    stream.print
-
     env.execute("Flink Kafka Example")
   }
 
