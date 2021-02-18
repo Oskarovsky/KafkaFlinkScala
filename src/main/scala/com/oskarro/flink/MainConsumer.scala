@@ -40,9 +40,9 @@ object MainConsumer {
       .map(bus => (bus.Lines, bus.Lon, bus.VehicleNumber, bus.Time, bus.Lat, bus.Brigade))
 
     CassandraSink.addSink(sinkBusDataStream)
-      .setHost("127.0.0.1")
-      .setQuery("INSERT INTO metrics.buses_full(" +
-        "\"Lines\", " +
+      .setHost("localhost")
+      .setQuery("INSERT INTO wawa.bus_stream1(" +
+        "\"Line\", " +
         "\"Lon\", " +
         "\"VehicleNumber\", " +
         "\"Time\", " +

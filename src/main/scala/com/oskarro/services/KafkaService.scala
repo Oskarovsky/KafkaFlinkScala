@@ -1,15 +1,11 @@
 package com.oskarro.services
 
 import com.oskarro.configuration.KafkaProperties
-import com.oskarro.flink.MainConsumer.BusStream
 import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.api.scala.createTypeInformation
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
-import org.json4s.DefaultFormats
-import org.json4s.native.JsonMethods
-import play.api.libs.json.{Json, Reads}
 
 import java.util.Properties
 
