@@ -1,6 +1,6 @@
 package com.oskarro.services
 
-import com.oskarro.model.Bus
+import com.oskarro.model.BusModel
 import org.apache.flink.api.scala.createTypeInformation
 import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.streaming.connectors.cassandra.CassandraSink
@@ -16,7 +16,7 @@ class CassandraService {
    *
    * @param busDataStream DataStream of type Car.
    */
-  def sinkToCassandraDB(busDataStream: DataStream[Bus]): Unit = {
+  def sinkToCassandraDB(busDataStream: DataStream[BusModel]): Unit = {
 
     createTypeInformation[(String, Long, String, Long, String, Long, String)]
 

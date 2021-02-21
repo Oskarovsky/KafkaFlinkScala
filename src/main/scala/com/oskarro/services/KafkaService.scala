@@ -1,6 +1,6 @@
 package com.oskarro.services
 
-import com.oskarro.configuration.KafkaProperties
+import com.oskarro.configuration.Constants
 import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.api.scala.createTypeInformation
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
@@ -37,7 +37,7 @@ class KafkaService {
    * @param props Kafka basic configuration.
    * @param content Data processed during the cycle
    */
-  def writeToKafka(topic: String, props: Properties = KafkaProperties.props, content: String): Unit = {
+  def writeToKafka(topic: String, props: Properties = Constants.props, content: String): Unit = {
     val producer = new KafkaProducer[String, String](props)
     val record = new ProducerRecord[String, String](topic, content)
     producer.send(record)

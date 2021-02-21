@@ -1,6 +1,9 @@
 package com.oskarro.flink
 
-import com.oskarro.configuration.KafkaProperties
+import com.oskarro.configuration.Constants
+import com.oskarro.enums.VehicleType
+import com.oskarro.enums.VehicleType.VehicleType
+import com.oskarro.model.BusModel
 import com.oskarro.services.KafkaService
 import net.liftweb.json.DefaultFormats
 import net.liftweb.json.JsonParser.parse
@@ -21,41 +24,35 @@ object MainProducer {
       produceCurrentLocationOfVehicles("bus")
     }*/
     system.scheduler.schedule(2 seconds, 6 seconds) {
-      produceCurrentLocationOfVehicles("tram")
+      produceCurrentLocationOfVehicles(VehicleType.tram)
     }
   }
 
-  def produceCurrentLocationOfVehicles(vehicleType: String): Unit = {
-    case class BusStream(Lines: String, Lon: Double, VehicleNumber: String, Time: String, Lat: Double, Brigade: String)
-
-    var vehicleTypeNumber: String = ""
-    if (vehicleType == "bus") {
-      vehicleTypeNumber = "1"
-    } else if (vehicleType == "tram") {
-      vehicleTypeNumber = "2"
-    } else {
+  def produceCurrentLocationOfVehicles(vehicleType: VehicleType): Unit = {
+    if (!VehicleType.values.toList.contains(vehicleType)) {
       throw new RuntimeException("There are API endpoints only for trams and buses")
     }
 
     val now = Calendar.getInstance().getTime
     val dataFormat = new SimpleDateFormat("yyyy-MM-dd  hh:mm:ss")
     println(s"[Timestamp - ${dataFormat.format(now)}] JSON Data for $vehicleType parsing started.")
+
     val req = requests.get("https://api.um.warszawa.pl/api/action/busestrams_get/",
       params = Map(
-        "resource_id" -> KafkaProperties.resourceID,
-        "apikey" -> KafkaProperties.apiKey,
-        "type" -> vehicleTypeNumber))
+        "resource_id" -> Constants.resourceID,
+        "apikey" -> Constants.apiKey,
+        "type" -> vehicleType.id.toString))
 
     val jsonObjectFromString = Json.parse(req.text)
     val response = jsonObjectFromString \ "result"
 
     implicit val formats: DefaultFormats.type = DefaultFormats
-    val vehicleList = parse(response.get.toString()).extract[List[BusStream]]
+    val vehicleList = parse(response.get.toString()).extract[List[BusModel]]
     val kafkaService = new KafkaService()
     vehicleList foreach {
       veh =>
         kafkaService
-          .writeToKafka("temat_oskar01", KafkaProperties.props, write(veh))
+          .writeToKafka(Constants.busTopic01, Constants.props, write(veh))
     }
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment

@@ -1,7 +1,7 @@
 package com.oskarro.flink
 
-import com.oskarro.configuration.KafkaProperties
-import com.oskarro.model.Bus
+import com.oskarro.configuration.Constants
+import com.oskarro.model.BusModel
 import net.liftweb.json.DefaultFormats
 import net.liftweb.json.JsonParser.parse
 import org.apache.flink.api.common.serialization.SimpleStringSchema
@@ -16,11 +16,11 @@ import java.util.Properties
 
 object MainConsumer {
 
-  implicit val jsonMessageReads: Reads[Bus] = Json.reads[Bus]
+  implicit val jsonMessageReads: Reads[BusModel] = Json.reads[BusModel]
   implicit lazy val formats = org.json4s.DefaultFormats
 
   def main(args: Array[String]): Unit = {
-    readCurrentLocationOfVehicles(KafkaProperties.topicFirst, KafkaProperties.props)
+    readCurrentLocationOfVehicles(Constants.busTopic01, Constants.props)
   }
 
   def readCurrentLocationOfVehicles(topic: String, properties: Properties): Unit = {
@@ -31,7 +31,7 @@ object MainConsumer {
 
     val busDataStream = env.addSource(kafkaConsumer)
       .flatMap(raw => JsonMethods.parse(raw).toOption)
-      .map(_.extract[Bus])
+      .map(_.extract[BusModel])
 
     createTypeInformation[(String, Long, String, Long, String, Long, String)]
 
@@ -41,7 +41,7 @@ object MainConsumer {
 
     CassandraSink.addSink(sinkBusDataStream)
       .setHost("localhost")
-      .setQuery("INSERT INTO wawa.bus_stream1(" +
+      .setQuery("INSERT INTO wawa.bus_stream_flink(" +
         "\"Line\", " +
         "\"Lon\", " +
         "\"VehicleNumber\", " +
@@ -51,11 +51,11 @@ object MainConsumer {
         " values (?, ?, ?, ?, ?, ?);")
       .build()
 
-//    busDataStream.map(x => {
-//      val str = Json.parse(x)
-//      println(str)
-//      implicit val formats: DefaultFormats.type = DefaultFormats
-//    })
+/*    busDataStream.map(x => {
+      val str = Json.parse(x)
+      println(str)
+      implicit val formats: DefaultFormats.type = DefaultFormats
+    })*/
 
 
     env.execute("Flink Kafka Example")
