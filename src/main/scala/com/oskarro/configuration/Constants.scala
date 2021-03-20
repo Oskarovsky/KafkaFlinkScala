@@ -1,7 +1,5 @@
 package com.oskarro.configuration
 
-import com.oskarro.configuration
-
 import java.util.Properties
 
 object Constants extends Enumeration {
