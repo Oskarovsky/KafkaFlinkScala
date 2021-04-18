@@ -16,8 +16,8 @@ object Constants extends Enumeration {
 
 //  type KafkaProperties = Value
 
-  val busTopic01: String = "busTopic01"
-  val tramTopic01: String = "tramTopic01"
+  val busTopic01: String = "temat_bus01"
+  val tramTopic01: String = "temat_tram01"
 
 
 }

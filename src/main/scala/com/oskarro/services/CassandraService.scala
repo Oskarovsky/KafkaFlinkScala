@@ -26,14 +26,15 @@ class CassandraService {
 
     CassandraSink.addSink(sinkBusDataStream)
       .setHost("127.0.0.1")
-      .setQuery("INSERT INTO stuff.bus_stream_flink(" +
+      .setQuery("INSERT INTO stuff.bus_flink(" +
+        "\"Uuid\", " +
         "\"Lines\", " +
         "\"Lon\", " +
         "\"VehicleNumber\", " +
         "\"Time\", " +
         "\"Lat\", " +
         "\"Brigade\")" +
-        " values (?, ?, ?, ?, ?, ?);")
+        " values (?, ?, ?, ?, ?, ?, ?);")
       .build()
 
   }

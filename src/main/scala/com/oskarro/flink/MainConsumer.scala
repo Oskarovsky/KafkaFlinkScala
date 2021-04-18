@@ -6,11 +6,13 @@ import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.api.scala.createTypeInformation
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.connectors.cassandra.CassandraSink
+import org.apache.flink.streaming.connectors.cassandra.CassandraSink.CassandraSinkBuilder
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011
 import org.json4s
 import org.json4s.native.JsonMethods
 import play.api.libs.json.{Json, Reads}
 
+import java.text.SimpleDateFormat
 import java.util.Properties
 
 object MainConsumer {
@@ -25,6 +27,7 @@ object MainConsumer {
   def readCurrentLocationOfVehicles(topic: String, properties: Properties): Unit = {
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
     env.enableCheckpointing(5000)
+    env.setParallelism(2)
     val kafkaConsumer = new FlinkKafkaConsumer011[String](topic, new SimpleStringSchema(), properties)
     kafkaConsumer.setStartFromLatest()
 
@@ -34,13 +37,33 @@ object MainConsumer {
 
     createTypeInformation[(String, Long, String, Long, String, Long, String)]
 
+    val xxx = env.addSource(kafkaConsumer).flatMap {
+      raw =>
+        JsonMethods.parse(raw).toOption
+          .map(_.extract[BusModel])
+    }
+
+
     // Creating bus data to sink into cassandraDB.
     val sinkBusDataStream = busDataStream
-      .map(bus => (java.util.UUID.randomUUID.toString, bus.Lines, bus.Lon, bus.VehicleNumber, bus.Time, bus.Lat, bus.Brigade))
+      .map(
+        bus => (
+          java.util.UUID.randomUUID.toString,
+          bus.Lines,
+          bus.Lon,
+          bus.VehicleNumber,
+          bus.Time,
+          bus.Lat,
+          bus.Brigade
+        )
+      )
 
-    CassandraSink.addSink(sinkBusDataStream)
+    val sinkBuilder: CassandraSinkBuilder[(String, String, Double, String, String, Double, String)] =
+      CassandraSink.addSink(sinkBusDataStream)
+
+    sinkBuilder
       .setHost("localhost")
-      .setQuery("INSERT INTO stuff.bus_stream_flink(" +
+      .setQuery("INSERT INTO transport.bus_flink(" +
         "\"Uuid\", " +
         "\"Lines\", " +
         "\"Lon\", " +
