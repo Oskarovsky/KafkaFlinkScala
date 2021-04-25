@@ -23,7 +23,7 @@ object MainProducer {
     /*    system.scheduler.schedule(2 seconds, 10 seconds) {
       produceCurrentLocationOfVehicles("bus")
     }*/
-    system.scheduler.schedule(2 seconds, 6 seconds) {
+    system.scheduler.schedule(1 seconds, 10 seconds) {
       produceCurrentLocationOfVehicles(VehicleType.tram)
     }
   }

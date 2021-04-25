@@ -5,6 +5,7 @@ import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.api.scala.createTypeInformation
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011
+import org.apache.flink.streaming.connectors.kafka.internal.FlinkKafkaProducer
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerRecord}
 
 import java.util.Properties
@@ -38,7 +39,7 @@ class KafkaService {
    * @param content Data processed during the cycle
    */
   def writeToKafka(topic: String, props: Properties = Constants.props, content: String): Unit = {
-    val producer = new KafkaProducer[String, String](props)
+    val producer = new FlinkKafkaProducer[String, String](props)
     val record = new ProducerRecord[String, String](topic, content)
     producer.send(record)
     producer.close()
