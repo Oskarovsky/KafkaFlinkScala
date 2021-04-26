@@ -1,7 +1,7 @@
 package com.oskarro.flink
 
 import com.oskarro.configuration.Constants
-import com.oskarro.model.BusModel
+import com.oskarro.model.{BusModel, BusRideModel}
 import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.scala.createTypeInformation
@@ -30,7 +30,7 @@ object MainConsumer {
   implicit val jsonMessageReads: Reads[BusModel] = Json.reads[BusModel]
   implicit lazy val formats: json4s.DefaultFormats.type = org.json4s.DefaultFormats
 
-  val cache: Map[String, Double] = Map()
+  private val AVERAGE_RADIUS_OF_EARTH_METER = 6371000
 
   def main(args: Array[String]): Unit = {
     readCurrentLocationOfVehicles(Constants.busTopic01, Constants.props)
@@ -47,21 +47,6 @@ object MainConsumer {
       .filter { _.nonEmpty}
       .flatMap(line => JsonMethods.parse(line).toOption)
       .map(_.extract[BusModel])
-//      .map { (_, 1)}
-//      .keyBy(_._1.Lines)
-//      .window(TumblingProcessingTimeWindows.of(Time.seconds(5)))
-//      .sum(1)
-//      .print()
-
-    busDataStream
-      .keyBy(_.VehicleNumber)
-      .timeWindow(Time.seconds(10))
-      .process(new CustomCountProc)
-      .print()
-    createTypeInformation[(String, Long, String, Long, String, Long, String)]
-
-    /* JSON END REGION */
-
 
     // a common operator to process different aggregation
     class CustomCountProc() extends ProcessWindowFunction[BusModel, BusModel, String, TimeWindow] {
@@ -76,32 +61,31 @@ object MainConsumer {
             val duration: Double = calculateDuration(e, busState.value())
             println(
               s"===========\n" +
-              s"Lon: ${e.Lon}, " +
-              s"Lat: ${e.Lat}, " +
-              s"Distance: $distance, " +
-              s"Duration: $duration, " +
-              s"Speed: ${calculateSpeed(distance, duration)}"
+                s"Lon: ${e.Lon}, " +
+                s"Lat: ${e.Lat}, " +
+                s"Distance: $distance, " +
+                s"Duration: $duration, " +
+                s"Speed: ${calculateSpeed(distance, duration)}"
             )
           }
           busState.update(e)
           println(s"BusState: ${busState.value()}")
         }
       }
+    }
 
-      /* Law of Haversines */
-      private val AVERAGE_RADIUS_OF_EARTH_METER = 6371000
-      def calculateDistance(firstBus: BusModel, secondBus: BusModel): Double = {
-        val latDistance = Math.toRadians(firstBus.Lat - secondBus.Lat)
-        val lngDistance = Math.toRadians(firstBus.Lon - secondBus.Lon)
-        val sinLat = Math.sin(latDistance / 2)
-        val sinLng = Math.sin(lngDistance / 2)
-        val a = sinLat * sinLat +
-          (Math.cos(Math.toRadians(firstBus.Lat)) *
-            Math.cos(Math.toRadians(secondBus.Lat)) *
-            sinLng * sinLng)
-        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-        (AVERAGE_RADIUS_OF_EARTH_METER * c)
-      }
+
+    def calculateDistance(firstBus: BusModel, secondBus: BusModel): Double = {
+      val latDistance = Math.toRadians(firstBus.Lat - secondBus.Lat)
+      val lngDistance = Math.toRadians(firstBus.Lon - secondBus.Lon)
+      val sinLat = Math.sin(latDistance / 2)
+      val sinLng = Math.sin(lngDistance / 2)
+      val a = sinLat * sinLat +
+        (Math.cos(Math.toRadians(firstBus.Lat)) *
+          Math.cos(Math.toRadians(secondBus.Lat)) *
+          sinLng * sinLng)
+      val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+      (AVERAGE_RADIUS_OF_EARTH_METER * c)
     }
 
     def calculateDuration(firstBus: BusModel, secondBus: BusModel): Long = {
@@ -117,41 +101,40 @@ object MainConsumer {
       distanceKm/durationHour
     }
 
-    env.execute("Flink Kafka Example")
+    val dataStream = busDataStream
+      .keyBy(_.VehicleNumber)
+      .timeWindow(Time.seconds(10))
+      .process(new CustomCountProc)
 
-
-    /* CASSANDRA */
-    // Creating bus data to sink into cassandraDB.
-/*
-    val sinkBusDataStream = busDataStream
-      .map(
-        bus => (
+    val sinkStream = dataStream
+      .map(x =>
+        (
           java.util.UUID.randomUUID.toString,
-          bus.Lines,
-          bus.Lon,
-          bus.VehicleNumber,
-          bus.Time,
-          bus.Lat,
-          bus.Brigade
+          x.Lines.toInt,
+          x.Lon,
+          x.VehicleNumber,
+          Timestamp.valueOf(x.Time),
+          x.Lat,
+          x.Brigade.toInt,
+          1.22
         )
       )
 
-    val sinkBuilder: CassandraSinkBuilder[(String, String, Double, String, String, Double, String)] =
-      CassandraSink.addSink(sinkBusDataStream)
-
-    sinkBuilder
-      .setHost("localhost")
-      .setQuery("INSERT INTO transport.bus_flink(" +
+    CassandraSink.addSink(sinkStream)
+      .setQuery("INSERT INTO transport.bus_flink_speed(" +
         "\"Uuid\", " +
         "\"Lines\", " +
         "\"Lon\", " +
         "\"VehicleNumber\", " +
         "\"Time\", " +
         "\"Lat\", " +
-        "\"Brigade\")" +
-        " values (?, ?, ?, ?, ?, ?, ?);")
+        "\"Brigade\", " +
+        "\"Speed\" )" +
+        " values (?, ?, ?, ?, ?, ?, ?, ?);")
+      .setHost("localhost")
       .build()
-*/
+
+    dataStream.print.setParallelism(1)
 
     env.execute("Flink Kafka Example")
   }
