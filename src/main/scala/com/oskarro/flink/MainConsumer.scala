@@ -1,27 +1,22 @@
 package com.oskarro.flink
 
 import com.oskarro.configuration.Constants
-import com.oskarro.model.{BusModel, BusRideModel}
+import com.oskarro.model.BusModel
 import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.scala.createTypeInformation
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
-import org.apache.flink.streaming.api.windowing.assigners.{TumblingEventTimeWindows, TumblingProcessingTimeWindows}
+import org.apache.flink.streaming.api.scala.function.ProcessWindowFunction
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.streaming.connectors.cassandra.CassandraSink
-import org.apache.flink.streaming.connectors.cassandra.CassandraSink.CassandraSinkBuilder
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011
-import org.apache.flink.streaming.api.scala.function.{ProcessWindowFunction, WindowFunction}
 import org.apache.flink.util.Collector
-import org.joda.time.{DateTime, Interval}
 import org.json4s
 import org.json4s.native.JsonMethods
 import play.api.libs.json.{Json, Reads}
 
-import java.lang
 import java.sql.Timestamp
-import java.time.Instant
 import java.util.Properties
 import java.util.concurrent.TimeUnit
 
@@ -57,6 +52,7 @@ object MainConsumer {
       override def process(key: String, context: Context, elements: Iterable[BusModel], out: Collector[BusModel]): Unit = {
         for (e <- elements) {
           if (busState.value() != null) {
+            out.collect(busState.value())
             val distance: Double = calculateDistance(e, busState.value())
             val duration: Double = calculateDuration(e, busState.value())
             println(
@@ -101,24 +97,25 @@ object MainConsumer {
       distanceKm/durationHour
     }
 
-    val dataStream = busDataStream
+    val dataStream: DataStream[BusModel] = busDataStream
       .keyBy(_.VehicleNumber)
       .timeWindow(Time.seconds(10))
       .process(new CustomCountProc)
 
+
+    createTypeInformation[(String, Double, Double, Timestamp, String, Double, Double, Double)]
     val sinkStream = dataStream
-      .map(x =>
-        (
-          java.util.UUID.randomUUID.toString,
-          x.Lines.toInt,
-          x.Lon,
-          x.VehicleNumber,
-          Timestamp.valueOf(x.Time),
-          x.Lat,
-          x.Brigade.toInt,
-          1.22
-        )
-      )
+      .map(busRide => (
+        java.util.UUID.randomUUID.toString,
+        busRide.Lines.toDouble,
+        busRide.Lon,
+        Timestamp.valueOf(busRide.Time),
+        busRide.VehicleNumber,
+        busRide.Lat,
+        busRide.Brigade.toDouble,
+        1.44
+      ))
+
 
     CassandraSink.addSink(sinkStream)
       .setQuery("INSERT INTO transport.bus_flink_speed(" +
@@ -129,12 +126,13 @@ object MainConsumer {
         "\"Time\", " +
         "\"Lat\", " +
         "\"Brigade\", " +
-        "\"Speed\" )" +
+        "\"Speed\")" +
         " values (?, ?, ?, ?, ?, ?, ?, ?);")
       .setHost("localhost")
       .build()
 
-    dataStream.print.setParallelism(1)
+//    dataStream.print.setParallelism(1)
+
 
     env.execute("Flink Kafka Example")
   }
