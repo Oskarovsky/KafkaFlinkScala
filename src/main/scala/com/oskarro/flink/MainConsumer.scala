@@ -5,6 +5,7 @@ import com.oskarro.model.BusModel
 import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.scala.createTypeInformation
+import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.api.scala.function.ProcessWindowFunction
 import org.apache.flink.streaming.api.windowing.time.Time
@@ -34,7 +35,8 @@ object MainConsumer {
   def readCurrentLocationOfVehicles(topic: String, properties: Properties): Unit = {
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
     env.enableCheckpointing(5000)
-    env.setParallelism(2)
+    env.setParallelism(3)
+    env.setStreamTimeCharacteristic(TimeCharacteristic.ProcessingTime)
     val kafkaConsumer = new FlinkKafkaConsumer011[String](topic, new SimpleStringSchema(), properties)
     kafkaConsumer.setStartFromLatest()
 
