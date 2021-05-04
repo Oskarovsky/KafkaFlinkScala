@@ -12,7 +12,7 @@ import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import play.api.libs.json.Json
 
 import java.text.SimpleDateFormat
-import java.util.{Calendar, Properties}
+import java.util.Calendar
 import scala.concurrent.duration.DurationInt
 
 object MainProducer {

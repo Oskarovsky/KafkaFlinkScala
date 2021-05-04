@@ -20,6 +20,8 @@ libraryDependencies += "org.scalaj" %% "scalaj-http" % "2.4.2"
 
 libraryDependencies += "com.typesafe.akka" % "akka-actor_2.11" % "2.5.32"
 
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
+
 val commonSettings = Seq(
   version := "1.0",
   scalaVersion := "2.11.7"

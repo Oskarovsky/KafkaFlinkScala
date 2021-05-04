@@ -1,13 +1,13 @@
 package com.oskarro.flink
 
 import com.oskarro.configuration.Constants
-import com.oskarro.model.BusModel
+import com.oskarro.model.{BusModel, BusRideModel}
 import org.apache.flink.api.common.serialization.SimpleStringSchema
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.scala.createTypeInformation
 import org.apache.flink.streaming.api.TimeCharacteristic
-import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.api.scala.function.ProcessWindowFunction
+import org.apache.flink.streaming.api.scala.{DataStream, StreamExecutionEnvironment}
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.streaming.connectors.cassandra.CassandraSink
@@ -15,15 +15,18 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer011
 import org.apache.flink.util.Collector
 import org.json4s
 import org.json4s.native.JsonMethods
+import org.slf4j.{Logger, LoggerFactory}
 import play.api.libs.json.{Json, Reads}
 
 import java.sql.Timestamp
-import java.util.Properties
+import java.time.Instant
+import java.util.{Date, Properties}
 import java.util.concurrent.TimeUnit
 
 object MainConsumer {
 
-  implicit val jsonMessageReads: Reads[BusModel] = Json.reads[BusModel]
+  val logger: Logger = LoggerFactory.getLogger(getClass.getSimpleName)
+  implicit val jsonMessageReads: Reads[BusRideModel] = Json.reads[BusRideModel]
   implicit lazy val formats: json4s.DefaultFormats.type = org.json4s.DefaultFormats
 
   private val AVERAGE_RADIUS_OF_EARTH_METER = 6371000
@@ -43,21 +46,23 @@ object MainConsumer {
     val busDataStream = env.addSource(kafkaConsumer)
       .filter { _.nonEmpty}
       .flatMap(line => JsonMethods.parse(line).toOption)
-      .map(_.extract[BusModel])
+      .map(_.extract[BusRideModel])
 
     // a common operator to process different aggregation
-    class CustomCountProc() extends ProcessWindowFunction[BusModel, BusModel, String, TimeWindow] {
-      lazy val busState: ValueState[BusModel] = getRuntimeContext.getState(
-        new ValueStateDescriptor[BusModel]("BusModel state", classOf[BusModel])
+    class CustomCountProc() extends ProcessWindowFunction[BusRideModel, BusRideModel, String, TimeWindow] {
+      lazy val busState: ValueState[BusRideModel] = getRuntimeContext.getState(
+        new ValueStateDescriptor[BusRideModel]("BusModel state", classOf[BusRideModel])
       )
 
-      override def process(key: String, context: Context, elements: Iterable[BusModel], out: Collector[BusModel]): Unit = {
+      override def process(key: String, context: Context, elements: Iterable[BusRideModel], out: Collector[BusRideModel]): Unit = {
         for (e <- elements) {
+          var vehicleSpeed: Double = 1.234
           if (busState.value() != null) {
             out.collect(busState.value())
             val distance: Double = calculateDistance(e, busState.value())
             val duration: Double = calculateDuration(e, busState.value())
-            println(
+            vehicleSpeed = calculateSpeed(distance, duration)
+            logger.info(
               s"===========\n" +
                 s"Lon: ${e.Lon}, " +
                 s"Lat: ${e.Lat}, " +
@@ -66,14 +71,17 @@ object MainConsumer {
                 s"Speed: ${calculateSpeed(distance, duration)}"
             )
           }
-          busState.update(e)
-          println(s"BusState: ${busState.value()}")
+          val tempState: BusRideModel = BusRideModel(
+            e.Lines, e.Lon, e.VehicleNumber, e.Time, e.Lat, e.Brigade, vehicleSpeed
+          )
+          busState.update(tempState)
+          logger.info(s"BusState: ${busState.value()}")
         }
       }
     }
 
 
-    def calculateDistance(firstBus: BusModel, secondBus: BusModel): Double = {
+    def calculateDistance(firstBus: BusRideModel, secondBus: BusRideModel): Double = {
       val latDistance = Math.toRadians(firstBus.Lat - secondBus.Lat)
       val lngDistance = Math.toRadians(firstBus.Lon - secondBus.Lon)
       val sinLat = Math.sin(latDistance / 2)
@@ -86,7 +94,7 @@ object MainConsumer {
       (AVERAGE_RADIUS_OF_EARTH_METER * c)
     }
 
-    def calculateDuration(firstBus: BusModel, secondBus: BusModel): Long = {
+    def calculateDuration(firstBus: BusRideModel, secondBus: BusRideModel): Long = {
       val firstTime: Timestamp = Timestamp.valueOf(firstBus.Time)
       val secondTime: Timestamp = Timestamp.valueOf(secondBus.Time)
       val diffInMillis = firstTime.getTime - secondTime.getTime
@@ -99,25 +107,25 @@ object MainConsumer {
       distanceKm/durationHour
     }
 
-    val dataStream: DataStream[BusModel] = busDataStream
+    val dataStream: DataStream[BusRideModel] = busDataStream
       .keyBy(_.VehicleNumber)
       .timeWindow(Time.seconds(10))
       .process(new CustomCountProc)
 
 
-    createTypeInformation[(String, Double, Double, Timestamp, String, Double, Double, Double)]
+    createTypeInformation[(String, Double, Double, java.util.Date, String, Double, Double, Double)]
+
     val sinkStream = dataStream
       .map(busRide => (
         java.util.UUID.randomUUID.toString,
         busRide.Lines.toDouble,
         busRide.Lon,
-        Timestamp.valueOf(busRide.Time),
         busRide.VehicleNumber,
+        Timestamp.from(Instant.now()),
         busRide.Lat,
         busRide.Brigade.toDouble,
-        1.44
+        busRide.Speed
       ))
-
 
     CassandraSink.addSink(sinkStream)
       .setQuery("INSERT INTO transport.bus_flink_speed(" +
@@ -132,9 +140,6 @@ object MainConsumer {
         " values (?, ?, ?, ?, ?, ?, ?, ?);")
       .setHost("localhost")
       .build()
-
-//    dataStream.print.setParallelism(1)
-
 
     env.execute("Flink Kafka Example")
   }

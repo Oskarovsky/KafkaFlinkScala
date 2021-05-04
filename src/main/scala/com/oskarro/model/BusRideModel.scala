@@ -2,10 +2,10 @@ package com.oskarro.model
 
 import java.sql.Timestamp
 
-case class BusRideModel(Line: Int,
+case class BusRideModel(Lines: String,
                         Lon: Double,
                         VehicleNumber: String,
-                        Time: Timestamp,
+                        Time: String,
                         Lat: Double,
-                        Brigade: Int,
-                        Speed: Double)
+                        Brigade: String,
+                        Speed: Double = 1.11)
